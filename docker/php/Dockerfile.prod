@@ -1,6 +1,7 @@
 FROM php:8.2-fpm
 
-WORKDIR /var/www/html
+# ルートディレクトリを src/ に設定
+WORKDIR /var/www/html/src
 
 # 本番環境用パッケージのインストール
 RUN apt-get update && apt-get install -y \
@@ -16,14 +17,23 @@ RUN apt-get update && apt-get install -y \
 # PHP拡張のインストール
 RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
 
-# Composerのインストール
+# Composer のインストール
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # アプリケーションファイルのコピー
-COPY . .
+# handson-laravel/ から src/ の内容を /var/www/html/src にコピー
+COPY ./src .
+
+# ルートディレクトリを /var/www/html に戻す
+WORKDIR /var/www/html
+
+# src/ ディレクトリから必要なファイルをルートディレクトリに移動
+RUN mv src/.env .
+RUN mv src/public/* .
+RUN rm -rf src/public
 
 # 本番環境用の最適化
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 RUN php artisan config:cache
 RUN php artisan route:cache
 RUN php artisan view:cache
