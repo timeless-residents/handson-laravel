@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: laravel-app
+    runtime: docker
+    dockerfilePath: ./docker/php/Dockerfile.prod
+    dockerContext: .
+    buildCommand: composer install --no-dev && php artisan key:generate
+    startCommand: php artisan serve --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false" 
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DATABASE_URL
+        fromDatabase:
+          name: laravel-db
+          property: connectionString
+
+databases:
+  - name: laravel-db
+    plan: free
+    ipAllowList: []
