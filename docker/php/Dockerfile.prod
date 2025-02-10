@@ -54,9 +54,11 @@ RUN php artisan route:cache
 RUN php artisan view:cache
 
 # マイグレーションを実行
-RUN php artisan migrate:fresh --seed --force
+# RUN php artisan migrate:fresh --seed --force
+RUN php artisan migrate
 # 権限設定
 RUN chown -R www-data:www-data storage bootstrap/cache
+
 
 EXPOSE 8000
 CMD ["php", "artisan", "serve", "--host", "0.0.0.0", "--port", "8000"]
