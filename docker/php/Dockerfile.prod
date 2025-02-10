@@ -4,8 +4,7 @@ FROM php:8.2-fpm
 WORKDIR /app
 
 # アプリケーションのソースコードをコピー
-COPY . /app
-
+COPY ./src /app
 
 # 本番環境用パッケージのインストール
 RUN apt-get update && apt-get install -y \
@@ -34,7 +33,6 @@ RUN php artisan view:cache
 
 # マイグレーションを実行
 RUN php artisan migrate:fresh --seed --force
-
 # 権限設定
 RUN chown -R www-data:www-data storage bootstrap/cache
 
