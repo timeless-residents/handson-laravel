@@ -1,6 +1,11 @@
 FROM php:8.2-fpm
 
-WORKDIR /var/www/html
+# 作業ディレクトリを設定
+WORKDIR /app
+
+# アプリケーションのソースコードをコピー
+COPY . /app
+
 
 # 本番環境用パッケージのインストール
 RUN apt-get update && apt-get install -y \
@@ -19,14 +24,16 @@ RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
 # Composerのインストール
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# アプリケーションファイルのコピー
-COPY . .
-
 # 本番環境用の最適化
 RUN composer install --no-dev --optimize-autoloader
+RUN composer require fakerphp/faker
+
 RUN php artisan config:cache
 RUN php artisan route:cache
 RUN php artisan view:cache
+
+# マイグレーションを実行
+RUN php artisan migrate:fresh --seed --force
 
 # 権限設定
 RUN chown -R www-data:www-data storage bootstrap/cache

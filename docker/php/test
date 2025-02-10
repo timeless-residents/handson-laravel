@@ -1,0 +1,92 @@
+FROM php:8.2-cli
+
+ARG DB_HOST
+ARG DB_PORT
+ARG DB_USERNAME
+ARG DB_DATABASE
+ARG DB_PASSWORD
+ARG APP_KEY
+ARG APP_URL
+
+ENV DB_HOST=${DB_HOST}
+ENV DB_PORT=${DB_PORT}
+ENV DB_USERNAME=${DB_USERNAME}
+ENV DB_DATABASE=${DB_DATABASE}
+ENV DB_PASSWORD=${DB_PASSWORD} 
+ENV APP_KEY=${APP_KEY}
+ENV APP_URL=${APP_URL}
+
+
+
+
+RUN if [ "$ENVIRONMENT" = "render" ] ; then \
+    apt-get update && apt-get install -y postgresql-client libpq-dev && \
+    docker-php-ext-install pdo_pgsql && \
+    echo "DB_CONNECTION=pgsql" >> .env ; \
+    echo "FORCE_HTTPS=true" >> .env  ; \
+    else \
+    apt-get update && apt-get install -y default-mysql-client && \
+    docker-php-ext-install pdo_mysql && \
+    echo "DB_CONNECTION=mysql" >> .env ; \
+    echo "FORCE_HTTPS=false" >> .env  ; \
+    fi
+
+RUN echo "DB_HOST: ${DB_HOST}"
+RUN echo "DB_PORT: ${DB_PORT}"
+RUN echo "DB_DATABASE: ${DB_DATABASE}"
+RUN echo "DB_USERNAME: ${DB_USERNAME}"
+RUN echo "DB_PASSWORD: ${DB_PASSWORD}"
+RUN echo "APP_KEY: ${APP_KEY}"
+# タイムゾーンを設定
+RUN echo "UTC" > /etc/timezone && \
+    ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+
+# ログディレクトリを作成
+RUN mkdir -p storage/logs
+
+# ログファイルを作成
+RUN touch storage/logs/laravel.log
+
+# ログファイルへの書き込み権限を付与
+RUN chmod 777 -R storage/logs
+
+# 必要に応じて、オペレーティングシステムのパッケージをインストール
+RUN apt-get update && apt-get install -y \
+    zip \
+    unzip \
+    git \
+    postgresql-client libpq-dev postgresql-client-common \ 
+    && rm -rf /var/lib/apt/lists/*
+
+# PostgreSQL 拡張機能をインストール
+RUN docker-php-ext-install pdo_pgsql
+
+# Composer をインストール
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# 作業ディレクトリを設定
+WORKDIR /app
+
+# アプリケーションのソースコードをコピー
+COPY . /app
+
+# Composer で依存関係をインストール
+RUN composer install --no-dev --optimize-autoloader
+RUN composer require fakerphp/faker
+
+# データベース接続を待機するスクリプトを追加
+COPY wait-for-db.sh /usr/local/bin/wait-for-db.sh
+RUN chmod +x /usr/local/bin/wait-for-db.sh
+
+# マイグレーションを実行
+RUN /usr/local/bin/wait-for-db.sh && php artisan migrate:fresh --seed --force
+
+# 環境変数を設定
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+
+# アプリケーションのポートを公開
+EXPOSE 10000
+
+# 起動コマンドを設定
+CMD ["php", "artisan", "serve", "--host", "0.0.0.0", "--port", "10000"]
