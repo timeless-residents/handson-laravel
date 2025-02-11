@@ -8,6 +8,7 @@ ARG DB_DATABASE
 ARG DB_PASSWORD
 ARG APP_KEY
 ARG APP_URL
+ARG APP_ENV
 ARG DB_CONNECTION
 ARG FORCE_HTTPS
 
@@ -18,6 +19,7 @@ ENV DB_DATABASE=${DB_DATABASE}
 ENV DB_PASSWORD=${DB_PASSWORD} 
 ENV APP_KEY=${APP_KEY}
 ENV APP_URL=${APP_URL}
+ENV APP_ENV=${APP_ENV}
 ENV DB_CONNECTION=${DB_CONNECTION}
 ENV FORCE_HTTPS=${FORCE_HTTPS}
 
@@ -55,7 +57,7 @@ RUN php artisan view:cache
 
 # マイグレーションを実行
 # RUN php artisan migrate:fresh --seed --force
-RUN php artisan migrate
+RUN php artisan migrate --force
 # 権限設定
 RUN chown -R www-data:www-data storage bootstrap/cache
 
